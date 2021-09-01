@@ -52,7 +52,8 @@ for index, row  in df.iterrows():
 
     if sum(selected_mask) < 2: continue
 
-    print('index = %d, SMILES_1: %s' % (index, Chem.MolToSmiles(tautomers[0])))
+    #print('index = %d, SMILES_1: %s' % (index, Chem.MolToSmiles(tautomers[0])))
+
     #mols = [tautomers[i] for i in range(len(tautomers)) if selected_mask[i]]
     #texts = [labels[i] for i in range(len(tautomers)) if selected_mask[i]]
     #img = Draw.MolsToGridImage(mols, molsPerRow=sum(selected_mask),
@@ -83,7 +84,11 @@ for index, row  in df.iterrows():
     success_count += sum(hit_mask)
     transform_count += sum(selected_mask) - 1
 
-    if index > 2000: break
+    for hit in hit_mask:
+        if not hit:
+            print('fail, iter=%d, input=%s, taut=%s' % (index, Chem.MolToSmiles(tautomers[0], True), Chem.MolToSmiles(tautomers[hit+1], True)))
+
+    #if index > 2000: break
     #if len(ts) == 0: continue
 
     #for i in range(len(transforms)):
