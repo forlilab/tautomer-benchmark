@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import rdChemReactions
@@ -44,7 +46,12 @@ class Tautomerizer:
                     print("Found product tuple in tuple of tuples with %d molecules" % len(p))
                     print(rule_id, Chem.MolToSmiles(mol), products)
                     raise RuntimeError
+                try:
+                    Chem.SanitizeMol(p[0])
+                except:
+                    continue
                 uniq.add(Chem.MolToSmiles(p[0]))
+            #print("uniq", uniq)
             uniq = [Chem.MolFromSmiles(s) for s in uniq]
             uniq = [Chem.AddHs(mol) for mol in uniq]
             tautomers[rule_id] = uniq
@@ -61,11 +68,33 @@ class Tautomerizer:
         img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=len(mols))
         return img, tautomers
 
-
-
-
 #kekule_supplier = Chem.ResonanceMolSupplier(mol, Chem.KEKULE_ALL)
 #products = tuple()
 #products += rxn.RunReactants((mol,))
 #for kekule_mol in kekule_supplier:
 #    products += rxn.RunReactants((kekule_mol,))
+
+def cmd_lineparser():
+    parser = argparse.ArgumentParser(description='Generate tautomers')
+    parser.add_argument('-s', '--smiles', required=True)
+    parser.add_argument('-r', '--reaction_smarts', required=True)
+    args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    import argparse
+    args = cmd_lineparser()
+    tautomerizer = Tautomerizer(args.reaction_smarts)
+    mol = Chem.MolFromSmiles(args.smiles)
+    mol_h = Chem.AddHs(mol)
+    products = tautomerizer.apply_rules(mol_h)
+    for p in products:
+        try:
+            Chem.SanitizeMol(p[0])
+            print('yupiii')
+        except:
+            continue
+    print('here')
+    img, products = tautomerizer.show_transforms(mol_h)
+    img.show()
