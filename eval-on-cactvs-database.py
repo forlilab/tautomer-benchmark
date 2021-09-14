@@ -27,8 +27,9 @@ count = 0
 hits = {}
 wanted_transforms = ["PT_07_00"]
 
-success_count = 0
-transform_count = 0
+success_count = 0   #
+transform_count = 0 # stored in database of experimental data
+generated_count = 0 # ideally not too many...
 
 for index, row  in df.iterrows():
     tautomers = [Chem.MolFromSmiles(row["SMILES_%d" % (i+1)]) for i in range(row["Size"])]
@@ -74,6 +75,7 @@ for index, row  in df.iterrows():
     for rule_id in predicted_tautomers:
         for t in predicted_tautomers[rule_id]:
             pred_smiles = Chem.MolToSmiles(Chem.RemoveHs(t), isomericSmiles=False)
+            generated_count += 1
             for i in range(1, len(selected_mask)):
                 if selected_mask[i]:
                     smiles = Chem.MolToSmiles(Chem.MolFromSmiles(Chem.MolToSmiles(tautomers[i])), isomericSmiles=False)
@@ -105,4 +107,5 @@ for index, row  in df.iterrows():
 
 print('index=%d' % index)
 print("success: %d out of %d" % (success_count, transform_count))
+print("total generated tautomers: %d" % (generated_count))
 
