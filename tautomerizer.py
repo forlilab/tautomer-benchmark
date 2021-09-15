@@ -5,10 +5,20 @@ from rdkit.Chem import Draw
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import rdDistGeom
 from rdkit.Chem import rdFMCS
+from rdkit.Chem.MolStandardize import rdMolStandardize
 import pandas
 from PIL import ImageDraw
 from PIL import ImageFont
 import os
+
+def get_rdkit_tautomers(mol):
+    """ based on: https://gist.github.com/iwatobipen/ca1999b6e4637daf88f315b412220737
+    """
+    tenum = rdMolStandardize.TautomerEnumerator()
+    tenum.Canonicalize(mol)
+    res = tenum.Enumerate(mol)
+    return list(res)
+
 
 class Tautomerizer:
     """CACTVS Tautomer rules using RDKit"""
@@ -45,7 +55,7 @@ class Tautomerizer:
                 if len(p) != 1:
                     print("Found product tuple in tuple of tuples with %d molecules" % len(p))
                     print(rule_id, Chem.MolToSmiles(mol), products)
-                    raise RuntimeError
+                    #raise RuntimeError
                 try:
                     Chem.SanitizeMol(p[0])
                 except:
@@ -56,6 +66,14 @@ class Tautomerizer:
             uniq = [Chem.AddHs(mol) for mol in uniq]
             tautomers[rule_id] = uniq
         return tautomers
+
+    def get_tautomers(self, mol):
+        t = self.apply_rules(mol)
+        uniq = set()
+        for rule_id in t:
+            for mol in t[rule_id]:
+                uniq.add(Chem.MolToSmiles(mol))
+        return list([Chem.MolFromSmiles(s) for s in uniq])
 
     def show_transforms(self, mol):
         tautomers = self.apply_rules(mol, max_iter=1)
@@ -88,6 +106,8 @@ if __name__ == "__main__":
     tautomerizer = Tautomerizer(args.reaction_smarts)
     mol = Chem.MolFromSmiles(args.smiles)
     mol_h = Chem.AddHs(mol)
+    p = Chem.MolFromSmarts("[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c:5]=,:[C,c,nX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]")
+    print(mol_h.HasSubstructMatch(p))
     products = tautomerizer.apply_rules(mol_h)
     for p in products:
         try:
