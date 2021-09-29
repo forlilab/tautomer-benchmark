@@ -3,3 +3,6 @@
 ./tautomerizer.py -r pt07mod2.txt -s "NC1=c2c(nc3n2Cc2ccccc2-3)=NS(=O)(=O)N1"
 N1N=CN2N=CN=C2-1
 "COc1ccc(/N=N/c2c(C)c(C#N)c(=O)n(C)c2O)c([N+](=O)[O-])c1"
+./tautomerizer.py -r pt07mod2.txt -s "OC1=CC(C)=NN1C2=CC=CC=C2"
+./tautomerizer.py -r pt07mod2.txt -s "O=CC=NNC"
+./tautomerizer.py -r pt07mod3.txt -s "CC1=NNC2N1N=CN=2" # example of PT_08_00

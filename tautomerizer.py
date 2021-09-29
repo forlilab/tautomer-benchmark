@@ -77,7 +77,7 @@ class Tautomerizer:
 
     def show_transforms(self, mol):
         tautomers = self.apply_rules(mol, max_iter=1)
-        mols = [Chem.RemoveHs(mol)]
+        mols = [mol]
         labels = ['input']
         for rule_id in tautomers:
             for tautomer in tautomers[rule_id]:
@@ -105,16 +105,15 @@ if __name__ == "__main__":
     args = cmd_lineparser()
     tautomerizer = Tautomerizer(args.reaction_smarts)
     mol = Chem.MolFromSmiles(args.smiles)
-    mol_h = Chem.AddHs(mol)
-    p = Chem.MolFromSmarts("[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c:5]=,:[C,c,nX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]")
-    print(mol_h.HasSubstructMatch(p))
-    products = tautomerizer.apply_rules(mol_h)
-    for p in products:
-        try:
-            Chem.SanitizeMol(p[0])
-            print('yupiii')
-        except:
-            continue
-    print('here')
-    img, products = tautomerizer.show_transforms(mol_h)
+    #p = Chem.MolFromSmarts("[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c:5]=,:[C,c,nX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]")
+    #print(mol_h.HasSubstructMatch(p))
+    #products = tautomerizer.apply_rules(mol)
+    #for p in products:
+    #    try:
+    #        Chem.SanitizeMol(p[0])
+    #        print('yupiii')
+    #    except:
+    #        continue
+    #print('here')
+    img, products = tautomerizer.show_transforms(mol)
     img.show()

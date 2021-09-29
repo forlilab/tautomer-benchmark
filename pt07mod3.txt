@@ -1,0 +1,1 @@
+[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c,NX2,nX2:5]=,:[C,c,nX2,NX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]>>[#1:4][N,S,O,Se,Te:1][C,NX2:6]=,:[C,N:5][C,#7X2:2]=,:[NX2,S,O,Se,Te:3]    PT_07_00-mod3
