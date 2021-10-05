@@ -13,7 +13,7 @@ import sys
 if len(sys.argv) == 2:
     smirks_fn = sys.argv[1]
 else:
-    smirks_fn = "smirks2.txt"
+    smirks_fn = "smirks.txt"
 tautomerizer = Tautomerizer(smirks_fn)
 
 font = ImageFont.truetype("FreeMono.ttf", 16)
@@ -56,7 +56,6 @@ def myeval(input_mol, target_mols, tautomer_generator_func):
     input_smiles = Chem.MolToSmiles(Chem.MolFromSmiles(Chem.MolToSmiles(input_mol)), isomericSmiles=False)
     target_smiles_list = [s for s in list(set(target_smiles_list)) if s != input_smiles]
     hit_mask = [False for _ in target_smiles_list]
-
     for t in predicted_tautomers:
         pred_smiles = Chem.MolToSmiles(Chem.RemoveHs(t), isomericSmiles=False)
         matched = False
@@ -76,7 +75,7 @@ def myeval(input_mol, target_mols, tautomer_generator_func):
     return n_hits, n_misses, n_tautomers_generated, missed_targets, excess_tautomers
 
 for index, row  in df.iterrows():
-    #if index!=7:continue
+    if index!=689:continue
     tautomers = [Chem.MolFromSmiles(row["SMILES_%d" % (i+1)]) for i in range(row["Size"])]
     if None in tautomers:
         print("Mol is None, index=%d, skipping" % index)

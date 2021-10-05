@@ -39,10 +39,10 @@ class Tautomerizer:
                 except:
                     print("Failed loading rule %s from %s" % (rule_id, filename))
                     n_fail += 1
-        print("Loaded %d rules from %s. Failed: %d" % (len(rxns), filename, n_fail))
+        print("Loaded %d rules from %s. Failed reading %d smirks." % (len(rxns), filename, n_fail))
         return rxns
 
-    def apply_rules(self, mol, max_iter=1):
+    def apply_rules(self, mol):
         mol = Chem.AddHs(mol)
         tautomers = {}
         for rule_id in self.reactions:
@@ -59,6 +59,7 @@ class Tautomerizer:
                 try:
                     Chem.SanitizeMol(p[0])
                 except:
+                    print("Sanitization failed")
                     continue
                 uniq.add(Chem.MolToSmiles(p[0]))
             uniq = [Chem.MolFromSmiles(s) for s in uniq]
@@ -68,14 +69,29 @@ class Tautomerizer:
 
     def get_tautomers(self, mol):
         t = self.apply_rules(mol)
+        input_smiles = Chem.MolToSmiles(Chem.AddHs(mol), isomericSmiles=False)
         uniq = set()
         for rule_id in t:
             for mol in t[rule_id]:
-                uniq.add(Chem.MolToSmiles(mol))
-        return list([Chem.MolFromSmiles(s) for s in uniq])
+                smiles = Chem.MolToSmiles(mol)
+                if smiles == input_smiles: continue
+                uniq.add(smiles)
+        # now let's do it again
+        mols = list([Chem.MolFromSmiles(s) for s in uniq])
+        for mol in mols:
+            t = self.apply_rules(mol)
+            for rule_id in t:
+                for mol in t[rule_id]:
+                    smiles = Chem.MolToSmiles(mol)
+                    if smiles == input_smiles: continue
+                    uniq.add(smiles)
+        print(input_smiles)
+        print(uniq)
+        mols = list([Chem.MolFromSmiles(s) for s in uniq])
+        return mols
 
     def show_transforms(self, mol):
-        tautomers = self.apply_rules(mol, max_iter=1)
+        tautomers = self.apply_rules(mol)
         mols = [mol]
         labels = ['input']
         for rule_id in tautomers:
@@ -94,7 +110,7 @@ class Tautomerizer:
 def cmd_lineparser():
     parser = argparse.ArgumentParser(description='Generate tautomers')
     parser.add_argument('-s', '--smiles', required=True)
-    parser.add_argument('-r', '--reaction_smarts', required=True)
+    parser.add_argument('-r', '--reaction_smarts', default='smirks.txt')
     args = parser.parse_args()
     return args
 
