@@ -1,0 +1,1 @@
+[nX2,NX2,S,O,Se,Te,Cz0X3:1]:,=[c,C,NX2,nX2:6][C,c,NX2,nX2:5]:,=[C,c,NX2,nX2:2][C,c,NX2,nX2:7]:,=[C,c,NX2,nX2:8][N,n,S,s,O,o,Se,Te,CX4z0:3][#1:4]>>[#1:4][N,n,S,O,Se,Te,Cz0X4:1][C,c,NX2,nX2:6]=[C,c:5][C,c,NX2,nX2:2]=[C,c,NX2,nX2:7][C,c,NX2,nX2:8]=[NX2,S,O,Se,Te,CX3z0:3]    PT_09_00
