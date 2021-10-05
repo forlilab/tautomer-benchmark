@@ -1,0 +1,2 @@
+[#6X{2-3}z{0-1},N,n,S,s,O,o,Se,Te:1]:,=[NX2,nX2,#6X3,c,P,p:2][N,n,S,O,Se,Te:3][#1:4]>>[#1:4][CX4z{0-1},#7,S,O,Se,Te:1][#7X2,CX3z{0-1},#6,P,p:2]=[#7,#16,#8,Se,Te:3]    PT_06_00
+[#1:4][CX4z{0-1},N,n,S,O,Se,Te:1][NX2,nX2,CX3z{0-1},c,P,p:2]:,=[N,n,S,s,O,o,Se,Te:3]>>[CX{2-3}z{0-1},N,n,S,s,O,o,Se,Te:1]=[NX2,nX2,CX3,c,P,p:2][N,n,S,O,Se,Te:3][#1:4] PT_06_00rev

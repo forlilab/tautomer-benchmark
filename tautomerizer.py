@@ -61,9 +61,8 @@ class Tautomerizer:
                 except:
                     continue
                 uniq.add(Chem.MolToSmiles(p[0]))
-            #print("uniq", uniq)
             uniq = [Chem.MolFromSmiles(s) for s in uniq]
-            uniq = [Chem.AddHs(mol) for mol in uniq]
+            uniq = [Chem.AddHs(mol) for mol in uniq if mol is not None]
             tautomers[rule_id] = uniq
         return tautomers
 
@@ -105,6 +104,8 @@ if __name__ == "__main__":
     args = cmd_lineparser()
     tautomerizer = Tautomerizer(args.reaction_smarts)
     mol = Chem.MolFromSmiles(args.smiles)
+    #print('mol: ', Chem.MolToSmiles(mol))
+
     #p = Chem.MolFromSmarts("[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c:5]=,:[C,c,nX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]")
     #print(mol_h.HasSubstructMatch(p))
     #products = tautomerizer.apply_rules(mol)
@@ -116,4 +117,7 @@ if __name__ == "__main__":
     #        continue
     #print('here')
     img, products = tautomerizer.show_transforms(mol)
-    img.show()
+    for rule_id in products:
+        for mol in products[rule_id]:
+            print(Chem.MolToSmiles(Chem.RemoveHs(mol)), rule_id)
+    img.save("tmp.png")
