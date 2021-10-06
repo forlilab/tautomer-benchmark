@@ -5,6 +5,7 @@ from rdkit.Chem import Draw
 from rdkit.Chem import rdChemReactions
 from rdkit.Chem import rdDistGeom
 from rdkit.Chem import rdFMCS
+from rdkit.Chem import AllChem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 import pandas
 from PIL import ImageDraw
@@ -85,8 +86,8 @@ class Tautomerizer:
                     smiles = Chem.MolToSmiles(mol)
                     if smiles == input_smiles: continue
                     uniq.add(smiles)
-        print(input_smiles)
-        print(uniq)
+        #print(input_smiles)
+        #print(uniq)
         mols = list([Chem.MolFromSmiles(s) for s in uniq])
         return mols
 
@@ -100,6 +101,26 @@ class Tautomerizer:
                 mols.append(Chem.RemoveHs(tautomer))
         img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=len(mols))
         return img, tautomers
+
+    def show_transforms2(self, mol):
+        """use MCS to align molecules and highlight matched atoms"""
+
+        tautomers = self.apply_rules(mol)
+        mols = [Chem.RemoveHs(mol)]
+        labels = ['input']
+        for rule_id in tautomers:
+            for tautomer in tautomers[rule_id]:
+                labels.append(rule_id)
+                mols.append(Chem.RemoveHs(tautomer))
+
+        mcs = rdFMCS.FindMCS(mols)
+        template = Chem.MolFromSmarts(mcs.smartsString)
+        AllChem.Compute2DCoords(template)
+        for m in mols:
+            AllChem.GenerateDepictionMatching2DStructure(m, template)
+        img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=len(mols))
+        return img, tautomers
+
 
 #kekule_supplier = Chem.ResonanceMolSupplier(mol, Chem.KEKULE_ALL)
 #products = tuple()
@@ -132,7 +153,7 @@ if __name__ == "__main__":
     #    except:
     #        continue
     #print('here')
-    img, products = tautomerizer.show_transforms(mol)
+    img, products = tautomerizer.show_transforms2(mol)
     for rule_id in products:
         for mol in products[rule_id]:
             print(Chem.MolToSmiles(Chem.RemoveHs(mol)), rule_id)
