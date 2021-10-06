@@ -196,8 +196,9 @@ for wanted in wanted_transforms:
     stats = evalondf(df, wanted, do_rdkit)
     stats_dict['%s' % wanted] = stats
 
-for wanted in stats_list:    
-    stats_string = print_stats(stats[wanted])
+for wanted in stats_dict:
+    stats = stats_dict[wanted]
+    stats_string = print_stats(stats)
     print('\n\n%s\n%s\n' % (wanted, stats_string))
     # 'misses' and 'excesses' are capturing the last wanted_transform only
     misses = stats['misses']

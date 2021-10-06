@@ -44,7 +44,7 @@ class Tautomerizer:
         return rxns
 
     def apply_rules(self, mol):
-        mol = Chem.AddHs(mol)
+        #mol = Chem.AddHs(mol)
         tautomers = {}
         for rule_id in self.reactions:
             rxn = self.reactions[rule_id]
@@ -64,13 +64,14 @@ class Tautomerizer:
                     continue
                 uniq.add(Chem.MolToSmiles(p[0]))
             uniq = [Chem.MolFromSmiles(s) for s in uniq]
-            uniq = [Chem.AddHs(mol) for mol in uniq if mol is not None]
+            #uniq = [Chem.AddHs(mol) for mol in uniq if mol is not None]
+            uniq = [mol for mol in uniq if mol is not None]
             tautomers[rule_id] = uniq
         return tautomers
 
     def get_tautomers(self, mol):
         t = self.apply_rules(mol)
-        input_smiles = Chem.MolToSmiles(Chem.AddHs(mol), isomericSmiles=False)
+        input_smiles = Chem.MolToSmiles(mol, isomericSmiles=False)
         uniq = set()
         for rule_id in t:
             for mol in t[rule_id]:
@@ -104,7 +105,6 @@ class Tautomerizer:
 
     def show_transforms2(self, mol):
         """use MCS to align molecules and highlight matched atoms"""
-
         tautomers = self.apply_rules(mol)
         mols = [Chem.RemoveHs(mol)]
         labels = ['input']
@@ -153,7 +153,8 @@ if __name__ == "__main__":
     #    except:
     #        continue
     #print('here')
-    img, products = tautomerizer.show_transforms2(mol)
+    img, products = tautomerizer.show_transforms(mol)
+    print(Chem.MolToSmiles(Chem.RemoveHs(mol)), 'input')
     for rule_id in products:
         for mol in products[rule_id]:
             print(Chem.MolToSmiles(Chem.RemoveHs(mol)), rule_id)

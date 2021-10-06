@@ -1,0 +1,23 @@
+['PT_06_00']
+success: 593 out of 705
+failure: 46 out of 705
+total generated tautomers: 2869
+DB entries with 'None' molecules (were excluded): 5
+(rdkit) success: 598 out of 705
+(rdkit) total generated tautomers: 7974
+
+['PT_07_00']
+success: 346 out of 390
+failure: 22 out of 390
+total generated tautomers: 2563
+DB entries with 'None' molecules (were excluded): 5
+(rdkit) success: 363 out of 390
+(rdkit) total generated tautomers: 5938
+
+['PT_09_00']
+success: 89 out of 89
+failure: 0 out of 89
+total generated tautomers: 404
+DB entries with 'None' molecules (were excluded): 5
+(rdkit) success: 85 out of 89
+(rdkit) total generated tautomers: 383
