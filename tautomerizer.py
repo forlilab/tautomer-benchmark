@@ -26,6 +26,8 @@ class Tautomerizer:
 
     def __init__(self, smirks_filename):
         self.reactions = self.load_smirks(smirks_filename)
+        self.trajectory = [] # transformations that yielded each tautomer
+        self.tautomers = []  # populated after each call to get_tautomers()
 
     def load_smirks(self, filename):
         rxns = {}
@@ -69,27 +71,57 @@ class Tautomerizer:
             tautomers[rule_id] = uniq
         return tautomers
 
-    def get_tautomers(self, mol):
-        t = self.apply_rules(mol)
+    def _remove_duplicates(self, tautomers, trajectory):
+        duplicates = []
+        duplicates_map = {}
+        for i in range(len(tautomers)):
+            if i in duplicates: continue 
+            for j in range(i+1, len(tautomers)):
+                if tautomers[i] == tautomers[j]:
+                    duplicates.append(j)
+                    duplicates_map[j] = i
+        assert(len(set(duplicates)) == len(duplicates)) # no duplicates in duplicates!
+        for j in sorted(duplicates)[::-1]:
+            tautomers.pop(j)
+            i = duplicates_map[j] # the equivalent tautomer that will be kept
+            trajectory[i].extend(trajectory[j])
+            trajectory.pop(j)
+        return
+
+    def get_tautomers(self, mol, do_second_round=True):
+        self.input_mol = mol
+        self.trajectory = [] # clean up from previous calls
+        trajectory = []
+        tautomers = []
         input_smiles = Chem.MolToSmiles(mol, isomericSmiles=False)
-        uniq = set()
-        for rule_id in t:
-            for mol in t[rule_id]:
+        products = self.apply_rules(mol)
+        for (rule_id, mols) in products.items():
+            for mol in mols:
                 smiles = Chem.MolToSmiles(mol)
                 if smiles == input_smiles: continue
-                uniq.add(smiles)
-        # now let's do it again
-        mols = list([Chem.MolFromSmiles(s) for s in uniq])
-        for mol in mols:
-            t = self.apply_rules(mol)
-            for rule_id in t:
-                for mol in t[rule_id]:
-                    smiles = Chem.MolToSmiles(mol)
-                    if smiles == input_smiles: continue
-                    uniq.add(smiles)
+                tautomers.append(smiles)
+                trajectory.append([rule_id])
+        self._remove_duplicates(tautomers, trajectory)
+        # second round of transformations: tautomerize the tautomers
+        if do_second_round:
+            mols = list([Chem.MolFromSmiles(s) for s in tautomers])
+            for (index, mol) in enumerate(mols):
+                products = self.apply_rules(mol)
+                for (rule_id, mols) in products.items():
+                    for mol in mols:
+                        smiles = Chem.MolToSmiles(mol)
+                        if smiles == input_smiles: continue
+                        tautomers.append(smiles)
+                        rules = []
+                        for rule in trajectory[index]:
+                            rules.append('%s->%s' % (rule, rule_id))
+                        trajectory.append(rules)
+            self._remove_duplicates(tautomers, trajectory)
         #print(input_smiles)
         #print(uniq)
-        mols = list([Chem.MolFromSmiles(s) for s in uniq])
+        self.trajectory = trajectory # just in case we ever reassign trajectory
+        mols = list([Chem.MolFromSmiles(s) for s in tautomers])
+        self.tautomers = mols
         return mols
 
     def show_transforms(self, mol):
@@ -121,6 +153,27 @@ class Tautomerizer:
         img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=len(mols))
         return img, tautomers
 
+    def show_transforms3(self, use_mcs=True):
+        n = len(self.tautomers)
+        mols = [self.input_mol]*n
+        labels = ['']*n
+        for index in range(n):
+            tautomer = self.tautomers[index]
+            label = self.trajectory[index]
+            mols.append(tautomer)
+            labels.append('%s' % label)
+
+        if use_mcs:
+            for mol in mols:
+                mcs = rdFMCS.FindMCS((self.input_mol, mol))
+                template = Chem.MolFromSmarts(mcs.smartsString)
+                AllChem.Compute2DCoords(template)
+                AllChem.GenerateDepictionMatching2DStructure(mol, template)
+        img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=n)
+        #img = Draw.MolsToGridImage(mols, subImgSize=(300, 300), molsPerRow=n)
+        return img
+
+
 
 #kekule_supplier = Chem.ResonanceMolSupplier(mol, Chem.KEKULE_ALL)
 #products = tuple()
@@ -140,7 +193,7 @@ if __name__ == "__main__":
     import argparse
     args = cmd_lineparser()
     tautomerizer = Tautomerizer(args.reaction_smarts)
-    mol = Chem.MolFromSmiles(args.smiles)
+    input_mol = Chem.MolFromSmiles(args.smiles)
     #print('mol: ', Chem.MolToSmiles(mol))
 
     #p = Chem.MolFromSmarts("[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c:5]=,:[C,c,nX2:2][N,n,S,s,O,o,Se,Te:3][#1:4]")
@@ -153,9 +206,17 @@ if __name__ == "__main__":
     #    except:
     #        continue
     #print('here')
-    img, products = tautomerizer.show_transforms(mol)
-    print(Chem.MolToSmiles(Chem.RemoveHs(mol)), 'input')
+    img, products = tautomerizer.show_transforms(input_mol)
+    print(Chem.MolToSmiles(input_mol), 'input')
     for rule_id in products:
         for mol in products[rule_id]:
             print(Chem.MolToSmiles(Chem.RemoveHs(mol)), rule_id)
     img.save("tmp.png")
+
+    print('---------------------------')
+    products = tautomerizer.get_tautomers(input_mol)
+    for mol, rules in zip(tautomerizer.tautomers, tautomerizer.trajectory):
+        print(Chem.MolToSmiles(mol), rules)
+    img = tautomerizer.show_transforms3(use_mcs=False)
+    img.save("show.png")
+

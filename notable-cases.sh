@@ -8,3 +8,7 @@ N1N=CN2N=CN=C2-1
 ./tautomerizer.py -r pt07mod3.txt -s "CC1=NNC2N1N=CN=2" # example of PT_08_00
 
 # PT_06 converts "CN1CCN2CC=C(O)N=C12" onto "CN1CCN2CCC(=O)N=C12" but not the reverse, by design!
+
+./tautomerizer.py -s "OC1C2C=NNC=2N=CN=1"
+"c1cnc2[nH]ccc2c1"
+"C1=CNC2N=CC=CC1=2"
