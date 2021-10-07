@@ -199,28 +199,51 @@ class Tautomerizer:
 
 def cmd_lineparser():
     parser = argparse.ArgumentParser(description='Generate tautomers')
-    parser.add_argument('-s', '--smiles', required=True)
+    parser.add_argument('--sdf')
+    parser.add_argument('-s', '--smiles')
     parser.add_argument('-r', '--reaction_smarts', default='smirks.txt')
     args = parser.parse_args()
+    neither = args.sdf is None and args.smiles is None
+    both = args.sdf is not None and args.smiles is not None
+    if neither or both: 
+        print("Need either --smiles or --sdf", file=sys.stderr)
+        sys.exit()
     return args
-
 
 if __name__ == "__main__":
     import argparse
     args = cmd_lineparser()
     tautomerizer = Tautomerizer(args.reaction_smarts)
-    input_mol = Chem.MolFromSmiles(args.smiles)
-    #img, products = tautomerizer.show_transforms(input_mol)
-    #print(Chem.MolToSmiles(input_mol), 'input')
-    #for rule_id in products:
-    #    for mol in products[rule_id]:
-    #        print(Chem.MolToSmiles(Chem.RemoveHs(mol)), rule_id)
-    #img.save("tmp.png")
 
-    #print('---------------------------')
-    products = tautomerizer.get_tautomers(input_mol)
-    for mol, rules in zip(tautomerizer.tautomers, tautomerizer.trajectory):
-        print(Chem.MolToSmiles(mol), rules)
-    img = tautomerizer.show_transforms3(use_mcs=False)
-    img.save("tmp.png")
+    if args.smiles is not None:
+        input_mol = Chem.MolFromSmiles(args.smiles)
+        products = tautomerizer.get_tautomers(input_mol)
+        for mol, rules in zip(tautomerizer.tautomers, tautomerizer.trajectory):
+            print(Chem.MolToSmiles(mol), rules)
+        img = tautomerizer.show_transforms3(use_mcs=False)
+        img.save("tmp.png")
 
+    elif args.sdf is not None:
+        import numpy as np
+        num_tautomers = []
+        mol_names = []
+        with Chem.SDMolSupplier(args.sdf) as supp:
+            counter = 0
+            for mol in supp:
+                name = mol.GetProp('_Name')
+                mol_names.append(name)
+                products = tautomerizer.get_tautomers(mol)
+                n = len(products)
+                num_tautomers.append(n)
+                counter += 1
+                if counter % 2000 == 0:
+                    print(counter)
+                    print('max: %d' % max(num_tautomers))
+                    for i in range(max(num_tautomers)+1):
+                        print('%3d: %6d' % (i, num_tautomers.count(i)))
+
+        print('------------------')
+        for i in range(max(num_tautomers)+1):
+            print('%3d: %6d' % (i, num_tautomers.count(i)))
+        print("input molecules: %d" % counter)
+        print("new tautomers: %d" % sum(num_tautomers))
