@@ -56,13 +56,17 @@ def myeval(input_mol, target_mols, tautomer_generator_func):
     n_hits = sum(hit_mask)
     n_misses = len(hit_mask) - n_hits
     n_tautomers_generated = len(predicted_tautomers)
-    return n_hits, n_misses, n_tautomers_generated, missed_targets, excess_tautomers
+    return n_hits, n_misses, n_tautomers_generated, missed_targets, excess_tautomers, hit_mask
 
 
 def evalondf(df, wanted_transforms, do_rdkit=False):
 
-    success_count = 0   #
-    failure_count = 0   #
+    success_count = 0
+    failure_count = 0
+    good_hit = 0    # hitful transforms that result in observed tautomers
+    bad_hit = 0     # hitful transforms that result in non-observed tautomers
+    good_miss = 0    # failed transforms but tautomer is not experimentally observed
+    bad_miss = 0     # failed transforms and tautomer is not experimentally observed
     transform_count = 0 # stored in database of experimental data
     generated_count = 0 # ideally not too many...
     entries_with_none = 0
@@ -83,6 +87,7 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
         
         input_mol = tautomers[0]
         target_tautomers = []
+        is_prevalent = [] # target tautomer is at least observed experimentally
         labels = []
         transforms = []
     
@@ -95,16 +100,21 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
                 transform = row["Transf_1_%d" % (i+1)]
                 transforms.append(transform)
                 is_wanted = transform in wanted_transforms
-                if is_wanted: target_tautomers.append(tautomers[i])
+                if is_wanted:
+                    target_tautomers.append(tautomers[i])
+                    is_prevalent.append(int(c) > 0)
     
         if len(target_tautomers) == 0: continue
     
         print("Working on index=%d, input_smiles=%s" % (index, Chem.MolToSmiles(input_mol)))
     
-    
-        n_hits, n_misses, n_tautomers_generated, missed, excess_tautomers = myeval(input_mol, target_tautomers, tautomerizer.get_tautomers)
+        n_hits, n_misses, n_tautomers_generated, missed, excess_tautomers, hit_mask = myeval(input_mol, target_tautomers, tautomerizer.get_tautomers)
         success_count += n_hits
         failure_count += n_misses
+        good_hit += sum([hit and prev for (hit, prev) in zip(hit_mask, is_prevalent)])
+        bad_hit += sum([hit and not prev for (hit, prev) in zip(hit_mask, is_prevalent)])
+        good_miss += sum([not hit and not prev for (hit, prev) in zip(hit_mask, is_prevalent)])
+        bad_miss += sum([not hit and prev for (hit, prev) in zip(hit_mask, is_prevalent)])
         generated_count += n_tautomers_generated
         transform_count += len(target_tautomers)
         input_smiles = Chem.MolToSmiles(Chem.MolFromSmiles(Chem.MolToSmiles(input_mol)), isomericSmiles=False)
@@ -113,11 +123,10 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
         for trgt_smiles in excess_tautomers:
             excesses.add((index, input_smiles, trgt_smiles))
     
-    
         # same as above but for rdkit
         if do_rdkit:
             try:
-                n_hits, n_fail, n_tautomers_generated, _, _ = myeval(input_mol, target_tautomers, get_rdkit_tautomers)
+                n_hits, n_fail, n_tautomers_generated, _, _, _ = myeval(input_mol, target_tautomers, get_rdkit_tautomers)
                 rdkit_success_count += n_hits
                 rdkit_generated_count += n_tautomers_generated
             except:
@@ -126,6 +135,10 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
     stats = {}
     stats['success_count'] = success_count
     stats['failure_count'] = failure_count
+    stats['good_hit'] = good_hit
+    stats['bad_hit'] = bad_hit
+    stats['good_miss'] = good_miss
+    stats['bad_miss'] = bad_miss
     stats['transform_count'] = transform_count
     stats['generated_count'] = generated_count
     stats['entries_with_none'] = entries_with_none
@@ -180,16 +193,21 @@ def print_stats(stats):
     string = ""
     string += "success: %d out of %d\n" % (stats['success_count'], stats['transform_count'])
     string += "failure: %d out of %d\n" % (stats['failure_count'], stats['transform_count'])
+    string += "good hits:   %4d\n" % (stats['good_hit'])
+    string += " bad hits:   %4d\n" % (stats['bad_hit'])
+    string += "good misses: %4d\n" % (stats['good_miss'])
+    string += " bad misses: %4d\n" % (stats['bad_miss'])
     string += "total generated tautomers: %d\n" % (stats['generated_count'])
     string += "DB entries with 'None' molecules (were excluded): %d\n" % (stats['entries_with_none'])
     string += "(rdkit) success: %d out of %d\n" % (stats['rdkit_success_count'], stats['transform_count'])
     string += "(rdkit) total generated tautomers: %d\n" % (stats['rdkit_generated_count'])
     return string
 
+wanted_transforms = [["PT_09_00"]]
 wanted_transforms = [["PT_06_00"], ["PT_07_00"], ["PT_09_00"]]
-do_rdkit=True
+do_rdkit=False
 stats_dict = {}
-write_figs_misses_excesses = False
+write_figs_misses_excesses = True
 
 
 for wanted in wanted_transforms:
