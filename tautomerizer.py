@@ -3,14 +3,9 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import rdChemReactions
-from rdkit.Chem import rdDistGeom
 from rdkit.Chem import rdFMCS
 from rdkit.Chem import AllChem
 from rdkit.Chem.MolStandardize import rdMolStandardize
-import pandas
-from PIL import ImageDraw
-from PIL import ImageFont
-import os
 import sys
 
 def get_rdkit_tautomers(mol):
@@ -89,7 +84,11 @@ class Tautomerizer:
             trajectory.pop(j)
         return
 
-    def get_tautomers(self, mol, do_second_round=True):
+    def get_tautomers(self,
+            mol,
+            do_second_round=True,
+            remove_less_aromatic=True,
+            remove_fewer_amides=True):
         self.input_mol = mol
         self.trajectory = [] # clean up from previous calls
         trajectory = []
@@ -119,17 +118,36 @@ class Tautomerizer:
                         trajectory.append(rules)
             self._remove_duplicates(tautomers, trajectory)
         # remove tautomers that disrupt aromaticity 
-        n_aromatic_atoms = []
-        for tautomer in tautomers:
-            mol = Chem.MolFromSmiles(tautomer)
-            n = sum([atom.GetIsAromatic() for atom in mol.GetAtoms()])
+        if remove_less_aromatic:
+            n_aromatic_atoms = []
+            for tautomer in tautomers:
+                mol = Chem.MolFromSmiles(tautomer)
+                n = sum([atom.GetIsAromatic() for atom in mol.GetAtoms()])
+                n_aromatic_atoms.append(n)
+            n = sum([atom.GetIsAromatic() for atom in self.input_mol.GetAtoms()])
             n_aromatic_atoms.append(n)
-        n = len(tautomers)
-        for i in range(n):
-            j = n - i - 1
-            if n_aromatic_atoms[j] < max(n_aromatic_atoms):
-                tautomers.pop(j)
-                trajectory.pop(j)
+            n = len(tautomers)
+            for i in range(n):
+                j = n - i - 1
+                if n_aromatic_atoms[j] < max(n_aromatic_atoms):
+                    tautomers.pop(j)
+                    trajectory.pop(j)
+        # remove tautomers that get rid of amides
+        amide = Chem.MolFromSmarts('O=[CX3][NX3]') # does NOT match 2-Pyridone (intentionally)
+        if remove_fewer_amides:
+            n_amides = []
+            for tautomer in tautomers:
+                mol = Chem.MolFromSmiles(tautomer)
+                n = len(mol.GetSubstructMatches(amide))
+                n_amides.append(n)
+            n = len(self.input_mol.GetSubstructMatches(amide))
+            n_amides.append(n)
+            n = len(tautomers)
+            for i in range(n):
+                j = n - i - 1
+                if n_amides[j] < max(n_amides):
+                    tautomers.pop(j)
+                    trajectory.pop(j)
         self.trajectory = trajectory # just in case we ever reassign trajectory
         mols = list([Chem.MolFromSmiles(s) for s in tautomers])
         self.tautomers = mols

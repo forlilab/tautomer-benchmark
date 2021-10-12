@@ -1,0 +1,35 @@
+['PT_06_00']
+success: 584 out of 705
+failure: 55 out of 705
+good hits:    440
+ bad hits:    144
+good misses:   33
+ bad misses:   22
+total generated tautomers: 1555
+DB entries with 'None' molecules (were excluded): 5
+
+
+
+
+['PT_07_00']
+success: 253 out of 390
+failure: 115 out of 390
+good hits:    176
+ bad hits:     77
+good misses:   12
+ bad misses:  103
+total generated tautomers: 1061
+DB entries with 'None' molecules (were excluded): 5
+
+
+
+
+['PT_09_00']
+success: 71 out of 89
+failure: 18 out of 89
+good hits:     61
+ bad hits:     10
+good misses:    4
+ bad misses:   14
+total generated tautomers: 120
+DB entries with 'None' molecules (were excluded): 5
