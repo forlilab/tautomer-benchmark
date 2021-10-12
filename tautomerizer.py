@@ -12,25 +12,37 @@ import sys
 class Tautomerizer:
     """CACTVS Tautomer rules using RDKit"""
 
-    def __init__(self, smirks_filename):
-        self.reactions = self.load_smirks(smirks_filename)
-        self.trajectory = [] # transformations that yielded each tautomer
-        self.tautomers = []  # populated after each call to get_tautomers()
+    default_smirks = [
+        '[#6X{2-3}z{0-1},N,n,S,s,O,o,Se,Te:1]:,=[NX2,nX2,#6X3,c,P,p:2][Nh,nh,Sh,Oh,Seh,Teh:3]>>[#1][CX4z{0-1},#7,S,O,Se,Te:1][#7X2,CX3z{0-1},#6,P,p:2]=[#7,#16,#8,Se,Te:3] P-06',
+        '[CX4z{0-1}h,Nh,nh,Sh,Oh,Seh,Teh:1][NX2,nX2,CX3z{0-1},c,P,p:2]:,=[N,n,S,s,O,o,Se,Te:3]>>[CX{2-3}z{0-1},N,n,S,s,O,o,Se,Te:1]=[NX2,nX2,CX3,c,P,p:2][N,n,S,O,Se,Te:3][#1] P-06r',
+        '[nX2,NX2,S,O,Se,Te:1]=,:[C,c,nX2,NX2:6][C,c,NX2,nX2:5]=,:[C,c,nX2,NX2:2][Nh,nh,Sh,sh,Oh,oh,Seh,Teh:3]>>[#1][N,S,O,Se,Te:1][C,NX2:6]=,:[C,N:5][C,#7X2:2]=,:[NX2,S,O,Se,Te:3] P-07',
+        '[nX2,NX2,S,O,Se,Te,Cz0X3:1]:,=[c,C,NX2,nX2:6][C,c,NX2,nX2:5]:,=[C,c,NX2,nX2:2][C,c,NX2,nX2:7]:,=[C,c,NX2,nX2:8][Nh,nh,Sh,sh,Oh,oh,Seh,Teh,CX4z0h:3]>>[#1][N,n,S,O,Se,Te,Cz0X4:1][C,c,NX2,nX2:6]=[C,c:5][C,c,NX2,nX2:2]=[C,c,NX2,nX2:7][C,c,NX2,nX2:8]=[NX2,S,O,Se,Te,CX3z0:3] P-09'
+        ]
 
-    def load_smirks(self, filename):
+    def __init__(self, smirks_filename=None):
+        if smirks_filename is not None:
+            with open(smirks_filename) as f:
+                smirks_lines = f.readlines()
+        else:
+            smirks_lines = self.default_smirks
+        reactions = self.load_smirks(smirks_lines)
+        self.reactions = reactions
+        # the following are populated by get_tautomers()
+        self.trajectory = []    # transformations that yielded each tautomer
+        self.tautomers = []     # mol objects
+
+    def load_smirks(self, smirks_lines):
         rxns = {}
         n_fail = 0
-        with open(filename) as f:
-            for line in f:
-                if line.startswith("#"): continue
-                smirks, rule_id = line.split()
-                try:
-                    rxn = rdChemReactions.ReactionFromSmarts(smirks)
-                    rxns[rule_id] = rxn
-                except:
-                    print("Failed loading rule %s from %s" % (rule_id, filename))
-                    n_fail += 1
-        print("Loaded %d rules from %s. Failed reading %d smirks." % (len(rxns), filename, n_fail))
+        for line in smirks_lines:
+            if line.startswith("#"): continue
+            smirks, rule_id = line.split()
+            try:
+                rxn = rdChemReactions.ReactionFromSmarts(smirks)
+                rxns[rule_id] = rxn
+            except:
+                print("Failed loading rule %s from %s" % (rule_id, filename))
+                n_fail += 1
         return rxns
 
     def apply_rules(self, mol):
@@ -50,7 +62,7 @@ class Tautomerizer:
                 try:
                     Chem.SanitizeMol(p[0])
                 except:
-                    print("Sanitization failed", file=sys.stderr)
+                    #print("Sanitization failed", file=sys.stderr)
                     continue
                 uniq.add(Chem.MolToSmiles(p[0]))
             uniq = [Chem.MolFromSmiles(s) for s in uniq]
@@ -157,7 +169,6 @@ class Tautomerizer:
         return img, tautomers
 
     def show_transforms2(self, mol):
-        """use MCS to align molecules and highlight matched atoms"""
         tautomers = self.apply_rules(mol)
         mols = [Chem.RemoveHs(mol)]
         labels = ['input']
@@ -174,19 +185,19 @@ class Tautomerizer:
         img = Draw.MolsToGridImage(mols, legends=labels, subImgSize=(300, 300), molsPerRow=len(mols))
         return img, tautomers
 
-    def show_transforms3(self, use_mcs=False, highlight=True):
+    def show_transforms3(self, use_mcs=False, highlight=False):
         n = len(self.tautomers)
         mols = [self.input_mol]*n
-        labels = ['']*n
-        highlights = []
+        labels = ['input']*n
+        highlights = [[]]*(2*n)
         for index in range(n):
             tautomer = self.tautomers[index]
             mols.append(tautomer)
             rules = self.trajectory[index]
-            #label = ', '.join(rules)
-            label = ', '.join(rules)
+            label = rules[0] 
+            if len(rules) > 1:
+                label += ' (%d more paths)' % (len(rules) - 1)
             labels.append(label)
-            if not highlight: highlights.append([])
         if use_mcs:
             for mol in mols:
                 mcs = rdFMCS.FindMCS((self.input_mol, mol))
@@ -194,8 +205,18 @@ class Tautomerizer:
                 AllChem.Compute2DCoords(template)
                 AllChem.GenerateDepictionMatching2DStructure(mol, template)
         if highlight:
-            pass
-
+            # https://gist.github.com/iwatobipen/6d8708d8c77c615cfffbb89409be730d
+            for index in range(n):
+                mcs = rdFMCS.FindMCS([mols[index], mols[index+n]])
+                mcs_pattern = Chem.MolFromSmarts(mcs.smartsString)
+                input_match = mols[index].GetSubstructMatch(mcs_pattern)
+                tauto_match = mols[index+n].GetSubstructMatch(mcs_pattern)
+                highlights[index]   = [a.GetIdx() for a in mols[index].GetAtoms()   if a.GetIdx() not in input_match]
+                highlights[index+n] = [a.GetIdx() for a in mols[index+n].GetAtoms() if a.GetIdx() not in tauto_match]
+        if n == 0:
+            labels = ['input']
+            mols = [self.input_mol]
+            n = 1
         img = Draw.MolsToGridImage(mols, legends=labels,
                 highlightAtomLists=highlights,
                 subImgSize=(300, 300), molsPerRow=n)
@@ -203,14 +224,19 @@ class Tautomerizer:
 
 def cmd_lineparser():
     parser = argparse.ArgumentParser(description='Generate tautomers')
-    parser.add_argument('--sdf')
+    parser.add_argument('--sdf', help='filename of input molecule(s)')
     parser.add_argument('-s', '--smiles')
-    parser.add_argument('-r', '--reaction_smarts', default='smirks.txt')
+    parser.add_argument('-r', '--reaction_smarts', help='smirks filename defining transformations')
+    parser.add_argument('-m', '--multi_molecule', help='process all molecules in SDF, reports histogram', action='store_true')
+    parser.add_argument('-p', '--png_filename', help='graphic depiction of tautomers', default='tautomerizer-output.png')
     args = parser.parse_args()
     neither = args.sdf is None and args.smiles is None
     both = args.sdf is not None and args.smiles is not None
     if neither or both: 
         print("Need either --smiles or --sdf", file=sys.stderr)
+        sys.exit()
+    if args.smiles is not None and args.multi_molecule:
+        print("--multi_molecule requires --sdf, not --smiles/-s")
         sys.exit()
     return args
 
@@ -219,15 +245,7 @@ if __name__ == "__main__":
     args = cmd_lineparser()
     tautomerizer = Tautomerizer(args.reaction_smarts)
 
-    if args.smiles is not None:
-        input_mol = Chem.MolFromSmiles(args.smiles)
-        products = tautomerizer.get_tautomers(input_mol)
-        for mol, rules in zip(tautomerizer.tautomers, tautomerizer.trajectory):
-            print(Chem.MolToSmiles(mol), rules)
-        img = tautomerizer.show_transforms3(use_mcs=False)
-        img.save("tmp.png")
-
-    elif args.sdf is not None:
+    if args.multi_molecule:
         import numpy as np
         num_tautomers = []
         mol_names = []
@@ -240,14 +258,21 @@ if __name__ == "__main__":
             n = len(products)
             num_tautomers.append(n)
             counter += 1
-            if counter % 2000 == 0:
-                print(counter)
-                print('max: %d' % max(num_tautomers))
-                for i in range(max(num_tautomers)+1):
-                    print('%3d: %6d' % (i, num_tautomers.count(i)))
-
-        print('------------------')
+            if counter % 100 == 0:
+                print("Processed molecules: %d\r" % counter, end='')
+                sys.stdout.flush()
+        print("Processed molecules: %d" % counter)
         for i in range(max(num_tautomers)+1):
             print('%3d: %6d' % (i, num_tautomers.count(i)))
-        print("input molecules: %d" % counter)
         print("new tautomers: %d" % sum(num_tautomers))
+    else:
+        if args.smiles is not None:
+            input_mol = Chem.MolFromSmiles(args.smiles)
+        else:
+            input_mol = Chem.MolFromMolFile(args.sdf)
+        products = tautomerizer.get_tautomers(input_mol)
+        print(Chem.MolToSmiles(input_mol), 'input')
+        for mol, rules in zip(tautomerizer.tautomers, tautomerizer.trajectory):
+            print(Chem.MolToSmiles(mol), rules)
+        img = tautomerizer.show_transforms3(use_mcs=False)
+        img.save(args.png_filename)

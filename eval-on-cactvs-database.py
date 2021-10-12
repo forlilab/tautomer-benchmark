@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from tautomerizer import Tautomerizer, get_rdkit_tautomers
+from tautomerizer import Tautomerizer
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem.MolStandardize import rdMolStandardize
