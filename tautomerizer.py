@@ -223,7 +223,20 @@ class Tautomerizer:
         return img
 
 def cmd_lineparser():
-    parser = argparse.ArgumentParser(description='Generate tautomers')
+    epilog_msg = (
+        'Notes:\n'
+        '  - image written to "tautomerizer-output.png" by default\n'
+        '    when in single molecule mode (without -m/--multi_molecule)\n'
+        '  - RDKit warning are expected\n'
+        '\nExamples:\n'
+        '    ./tautomerizer.py -s "C1NC=NC=1C(=O)NN2C(=O)NC=C2"\n'
+        '    ./tautomerizer.py --sdf molecule.sdf"\n'
+        '    ./tautomerizer.py --sdf many_molecules.sdf" -m\n'
+    )
+        
+    parser = argparse.ArgumentParser(
+        epilog=epilog_msg,
+        formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--sdf', help='filename of input molecule(s)')
     parser.add_argument('-s', '--smiles')
     parser.add_argument('-r', '--reaction_smarts', help='smirks filename defining transformations')
@@ -233,10 +246,12 @@ def cmd_lineparser():
     neither = args.sdf is None and args.smiles is None
     both = args.sdf is not None and args.smiles is not None
     if neither or both: 
-        print("Need either --smiles or --sdf", file=sys.stderr)
+        parser.print_help()
+        print("\nError:\n    Need either --smiles or --sdf", file=sys.stderr)
         sys.exit()
     if args.smiles is not None and args.multi_molecule:
-        print("--multi_molecule requires --sdf, not --smiles/-s")
+        parser.print_help()
+        print("\nError:\n    --multi_molecule requires --sdf, not --smiles/-s")
         sys.exit()
     return args
 
