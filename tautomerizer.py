@@ -8,14 +8,6 @@ from rdkit.Chem import AllChem
 from rdkit.Chem.MolStandardize import rdMolStandardize
 import sys
 
-def get_rdkit_tautomers(mol):
-    """ based on: https://gist.github.com/iwatobipen/ca1999b6e4637daf88f315b412220737
-    """
-    tenum = rdMolStandardize.TautomerEnumerator()
-    tenum.Canonicalize(mol)
-    res = tenum.Enumerate(mol)
-    return list(res)
-
 
 class Tautomerizer:
     """CACTVS Tautomer rules using RDKit"""
@@ -208,12 +200,6 @@ class Tautomerizer:
                 highlightAtomLists=highlights,
                 subImgSize=(300, 300), molsPerRow=n)
         return img
-
-#kekule_supplier = Chem.ResonanceMolSupplier(mol, Chem.KEKULE_ALL)
-#products = tuple()
-#products += rxn.RunReactants((mol,))
-#for kekule_mol in kekule_supplier:
-#    products += rxn.RunReactants((kekule_mol,))
 
 def cmd_lineparser():
     parser = argparse.ArgumentParser(description='Generate tautomers')

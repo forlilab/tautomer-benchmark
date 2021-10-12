@@ -149,45 +149,13 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
 
     return stats
 
-    #print('index = %d, SMILES_1: %s' % (index, Chem.MolToSmiles(tautomers[0])))
-
-    #mols = [tautomers[i] for i in range(len(tautomers)) if selected_mask[i]]
-    #texts = [labels[i] for i in range(len(tautomers)) if selected_mask[i]]
-    #img = Draw.MolsToGridImage(mols, molsPerRow=sum(selected_mask),
-    #        legends=texts, subImgSize=(imgsize, imgsize))
-    #draw = ImageDraw.Draw(img)
-    #draw.text((10, 10), row["Solvent"], (0, 0, 0), font)
-    ##print(index, len(transforms))
-    #for i in range(len(transforms)):
-    #    draw.text((imgsize*i+int(.8*imgsize), int(0.7*imgsize)), transforms[i], (0, 0, 0), font_small)
-    #    print((int(0.85*imgsize), imgsize*i+int(.8*imgsize)), transforms[i], (0, 0, 0), font_small)
-
-    #img2, ts = tautomerizer.show_transforms(tautomers[0])
-    #img.save("png-wanted/%04d-database.png" % (index))
-    #img2.save("png-wanted/%04d-rdkit.png" % (index))
-
-                #print(smiles, pred_smiles)
-
-    #print(index, row["Size"], hit_mask, sum(hit_mask), sum(selected_mask)-1)
-
-   # for hit in hit_mask:
-   #     if not hit:
-   #         print('fail, iter=%d, input=%s, taut=%s' % (index, Chem.MolToSmiles(tautomers[0], True), Chem.MolToSmiles(tautomers[hit+1], True)))
-
-    #if index > 2000: break
-    #if len(ts) == 0: continue
-
-    #for i in range(len(transforms)):
-    #    folder = transforms[i].replace(' ', '').replace('/', '--')
-    #    if not os.path.isdir('png/' + folder):
-    #        os.mkdir('png/' + folder) 
-    #    img.save("png/%s/%04d.png" % (folder, index))
-    #print(tautomers, row["Size"])
-            
-    #if mol.HasSubstructMatch(p1):# or mol.HasSubstructMatch(p2):
-    #if mol.HasSubstructMatch(p2):
-    #    print(row["Solvent"], row["pH"], row["Transf_1_2"], row["SMILES_1"], row["Quantitative_ratio_1"], row["Qualitative_prevalence_1"])
-    #if (index+1) % 50 == 0: print(index)
+def get_rdkit_tautomers(mol):
+    """ based on: https://gist.github.com/iwatobipen/ca1999b6e4637daf88f315b412220737
+    """
+    tenum = rdMolStandardize.TautomerEnumerator()
+    tenum.Canonicalize(mol)
+    res = tenum.Enumerate(mol)
+    return list(res)
 
 def print_stats(stats, do_rdkit=False):
     string = ""
