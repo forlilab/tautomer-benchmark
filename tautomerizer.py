@@ -245,20 +245,20 @@ if __name__ == "__main__":
         import numpy as np
         num_tautomers = []
         mol_names = []
-        with Chem.SDMolSupplier(args.sdf) as supp:
-            counter = 0
-            for mol in supp:
-                name = mol.GetProp('_Name')
-                mol_names.append(name)
-                products = tautomerizer.get_tautomers(mol)
-                n = len(products)
-                num_tautomers.append(n)
-                counter += 1
-                if counter % 2000 == 0:
-                    print(counter)
-                    print('max: %d' % max(num_tautomers))
-                    for i in range(max(num_tautomers)+1):
-                        print('%3d: %6d' % (i, num_tautomers.count(i)))
+        supp = Chem.SDMolSupplier(args.sdf)
+        counter = 0
+        for mol in supp:
+            name = mol.GetProp('_Name')
+            mol_names.append(name)
+            products = tautomerizer.get_tautomers(mol)
+            n = len(products)
+            num_tautomers.append(n)
+            counter += 1
+            if counter % 2000 == 0:
+                print(counter)
+                print('max: %d' % max(num_tautomers))
+                for i in range(max(num_tautomers)+1):
+                    print('%3d: %6d' % (i, num_tautomers.count(i)))
 
         print('------------------')
         for i in range(max(num_tautomers)+1):

@@ -189,7 +189,7 @@ def evalondf(df, wanted_transforms, do_rdkit=False):
     #    print(row["Solvent"], row["pH"], row["Transf_1_2"], row["SMILES_1"], row["Quantitative_ratio_1"], row["Qualitative_prevalence_1"])
     #if (index+1) % 50 == 0: print(index)
 
-def print_stats(stats):
+def print_stats(stats, do_rdkit=False):
     string = ""
     string += "success: %d out of %d\n" % (stats['success_count'], stats['transform_count'])
     string += "failure: %d out of %d\n" % (stats['failure_count'], stats['transform_count'])
@@ -199,8 +199,9 @@ def print_stats(stats):
     string += " bad misses: %4d\n" % (stats['bad_miss'])
     string += "total generated tautomers: %d\n" % (stats['generated_count'])
     string += "DB entries with 'None' molecules (were excluded): %d\n" % (stats['entries_with_none'])
-    string += "(rdkit) success: %d out of %d\n" % (stats['rdkit_success_count'], stats['transform_count'])
-    string += "(rdkit) total generated tautomers: %d\n" % (stats['rdkit_generated_count'])
+    if do_rdkit:
+        string += "(rdkit) success: %d out of %d\n" % (stats['rdkit_success_count'], stats['transform_count'])
+        string += "(rdkit) total generated tautomers: %d\n" % (stats['rdkit_generated_count'])
     return string
 
 wanted_transforms = [["PT_09_00"]]
@@ -216,7 +217,7 @@ for wanted in wanted_transforms:
 
 for wanted in stats_dict:
     stats = stats_dict[wanted]
-    stats_string = print_stats(stats)
+    stats_string = print_stats(stats, do_rdkit)
     print('\n\n%s\n%s\n' % (wanted, stats_string))
     # 'misses' and 'excesses' are capturing the last wanted_transform only
     misses = stats['misses']
