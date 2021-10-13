@@ -137,7 +137,7 @@ class Tautomerizer:
                     tautomers.pop(j)
                     trajectory.pop(j)
         # remove tautomers that get rid of amides
-        amide = Chem.MolFromSmarts('O=[CX3][NX3]') # does NOT match 2-Pyridone (intentionally)
+        amide = Chem.MolFromSmarts('[OX1,SX1]=[CX3][NX3]') # does NOT match 2-Pyridone (intentionally)
         if remove_fewer_amides:
             n_amides = []
             for tautomer in tautomers:
