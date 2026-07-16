@@ -30,6 +30,8 @@ class Tautomerizer:
         # the following are populated by get_tautomers()
         self.trajectory = []    # transformations that yielded each tautomer
         self.tautomers = []     # mol objects
+        self.counter = 0
+        self.n_prods = 0
 
     def load_smirks(self, smirks_lines):
         rxns = {}
@@ -51,7 +53,9 @@ class Tautomerizer:
         for rule_id in self.reactions:
             rxn = self.reactions[rule_id]
             products = rxn.RunReactants((mol,))
+            self.counter += 1
             n = len(products)
+            self.n_prods += n
             if n == 0: continue
             uniq = set()
             for p in products:
@@ -155,6 +159,7 @@ class Tautomerizer:
         self.trajectory = trajectory # just in case we ever reassign trajectory
         mols = list([Chem.MolFromSmiles(s) for s in tautomers])
         self.tautomers = mols
+        #print(self.counter, self.n_prods)
         return mols
 
     def show_transforms(self, mol):
