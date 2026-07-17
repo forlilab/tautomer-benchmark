@@ -8,6 +8,7 @@ from PIL import ImageDraw
 from PIL import ImageFont
 import os
 import sys
+from tqdm import tqdm
 
 if len(sys.argv) == 2:
     smirks_fn = sys.argv[1]
@@ -71,15 +72,14 @@ def evalondf(df, wanted_transforms, tautomerizer, category_thresholds):
         "rows_skipped": 0,
         "tautomers_skipped": 0,
         "tautomers_skipped_in_kept_rows": 0,
+        "entries_with_none": 0,
     }
 
-    entries_with_none = 0
-    for index, row  in df.iterrows():
+    for index, row in tqdm(df.iterrows(), total=len(df)):
         #if index!=689:continue
         tautomers = [Chem.MolFromSmiles(row["SMILES_%d" % (i+1)]) for i in range(row["Size"])]
         if None in tautomers:
-            print("Mol is None, index=%d, skipping" % index)
-            entries_with_none += 1
+            stats["entries_with_none"] += 1
             continue
     
         all_tautomers = [largest_Fragment.choose(mol) for mol in tautomers]
@@ -159,54 +159,72 @@ def get_rdkit_tautomers(mol):
     res = tenum.Enumerate(mol)
     return list(res)
 
-def print_stats(stats, do_rdkit=False):
-    string = ""
-    string += "success: %d out of %d\n" % (stats['success_count'], stats['transform_count'])
-    string += "failure: %d out of %d\n" % (stats['failure_count'], stats['transform_count'])
-    string += "good hits:   %4d\n" % (stats['good_hit'])
-    string += " bad hits:   %4d\n" % (stats['bad_hit'])
-    string += "good misses: %4d\n" % (stats['good_miss'])
-    string += " bad misses: %4d\n" % (stats['bad_miss'])
-    string += "total generated tautomers: %d\n" % (stats['generated_count'])
-    string += "DB entries with 'None' molecules (were excluded): %d\n" % (stats['entries_with_none'])
-    if do_rdkit:
-        string += "(rdkit) success: %d out of %d\n" % (stats['rdkit_success_count'], stats['transform_count'])
-        string += "(rdkit) total generated tautomers: %d\n" % (stats['rdkit_generated_count'])
-    return string
 
 target_transforms_list = [
     "all",
-    ["PT_06_00", "PT_07_00", "PT_09_00"],
-    ["PT_09_00"],
-    ["PT_06_00"],
-    ["PT_07_00"],
+#    ["PT_06_00", "PT_07_00", "PT_09_00"],
+#    ["PT_09_00"],
+#    ["PT_06_00"],
+#    ["PT_07_00"],
 ]
 results = {}
 write_figs_misses_excesses = True
 
 molscrub_tautomerizer = Tautomerizer.from_default_data_files()
 
-rules_cfbf0b1 = Tautomerizer.from_reactions_filename("tautomers-cfbf0b1.txt")
-rules_f714c5a = Tautomerizer.from_reactions_filename("tautomers-f714c5a.txt")
-rules_fd70a70 = Tautomerizer.from_reactions_filename("tautomers-fd70a70.txt")
+rules_cfbf0b1 = Tautomerizer.from_reactions_filename("data/tautomers-cfbf0b1.txt")
+rules_f714c5a = Tautomerizer.from_reactions_filename("data/tautomers-f714c5a.txt")
+rules_fd70a70 = Tautomerizer.from_reactions_filename("data/tautomers-fd70a70.txt")
+rules_1652d57 = Tautomerizer.from_reactions_filename("data/tautomers-1652d57.txt")
+rules_276cf30 = Tautomerizer.from_reactions_filename("data/tautomers-276cf30.txt")
+rules_e38b912 = Tautomerizer.from_reactions_filename("data/tautomers-e38b912.txt")
+rules_3ba4ffa = Tautomerizer.from_reactions_filename("data/tautomers-3ba4ffa.txt")
+
 
 funcs = {
-    "installed": molscrub_tautomerizer,
-    "cfbf0b1": rules_cfbf0b1,
-    "f714c5a": rules_f714c5a,
-    "fd70a70": rules_fd70a70,
-    "2021": old_tautomerizer,
+    #"installed": molscrub_tautomerizer,
+    "cfbf0b1": rules_cfbf0b1, # fix imine, replace acetone by enol, aromatic amide (2026)
+    # "f714c5a": rules_f714c5a, # add imine
+    # "fd70a70": rules_fd70a70,# same as 1652d57
+    "1652d57": rules_1652d57, # add phosphate to acetone (2025)
+    "276cf30": rules_276cf30, # add anilinium (2023)
+    "e38b912": rules_e38b912, # aromatic, aliphatic amide, acetone (2022)
+    "3ba4ffa": rules_3ba4ffa, # same as old, but through molscrub (2022)
+    "2021": old_tautomerizer, # old tautomerizer code before molscrub existed
     "rdkit": get_rdkit_tautomers,
 }
 category_thresholds = [2, 3, 4]
 
+results = {
+    "transforms": [],
+    "method": [],
+    "threshold": [],
+    "hits": [],
+    "wanted": [],
+    "generated": [],
+    "precision": [],
+    "recall": [],
+}
 
 for target_transforms in target_transforms_list:
     for func_name, func in funcs.items():
+        print(f"Running: {target_transforms=} {func_name=}")
         stats = evalondf(df, target_transforms, func, category_thresholds)
         for threshold in category_thresholds:
             hits = stats["hits"][threshold]
             wanted = stats["wanted"][threshold] 
             recall = hits / wanted
             precision = hits / stats["generated"]
-            print(f"{target_transforms=} {func_name=} {threshold=} {hits=} {wanted=} {stats['generated']=} {precision=:.3f} {recall=:.3f}")
+            print(f"{threshold=} {hits=} {wanted=} {stats['generated']=} {precision=:.3f} {recall=:.3f}")
+            results["transforms"].append("_".join(target_transforms))
+            results["method"].append(func_name)
+            results["threshold"].append(threshold)
+            results["hits"].append(hits)
+            results["wanted"].append(wanted)
+            results["generated"].append(stats["generated"])
+            results["precision"].append(precision)
+            results["recall"].append(recall)
+        print()
+
+results_df = pandas.DataFrame(results)
+results_df.to_csv("results.csv")
